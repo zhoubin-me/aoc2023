@@ -3,12 +3,15 @@ use std::env;
 use std::fmt::Display;
 use std::fs;
 
+use num::iter;
+
+
 
 fn print_matrix<T: Display>(mat: &Vec<Vec<T>>) {
     let mut s = "".to_string();
     for line in mat.iter() {
         for x in line.iter() {
-            s += x.to_string().as_str();
+            s += format!("{:5}", x).as_str();
         }
         s.push_str("\n");
     }
@@ -28,7 +31,7 @@ fn part_one(content: &String) -> u32 {
     let idx = content.find('S').unwrap();
 
 
-    let start = (idx / (n + 1), idx % (m + 1));
+    let start = (idx / (m + 1), idx % (m + 1));
     let mut visited = vec![vec![0; m]; n];
     let mut to_visit: Vec<((usize, usize), char, char, u32)> = ['U', 'D', 'L', 'R'].iter().map(
         | &dir | (start, 'S', dir, 0)
@@ -76,6 +79,7 @@ fn part_one(content: &String) -> u32 {
             }
             _ => {}
         }
+        print_matrix(&visited);
     }
     
     *visited.iter().flat_map(|row| row.iter()).max().unwrap_or(&0) - 1
@@ -93,19 +97,21 @@ fn part_two(content: &String) -> u32 {
 
 
     let start = (idx / (m + 1), idx % (m + 1));
-    let mut visited = vec![vec![' '; m]; n];
-    let mut to_visit: Vec<((usize, usize), char, char, u32)> = ['U', 'D', 'L', 'R'].iter().map(
+    let mut visited = vec![vec![0; m]; n];
+    let mut to_visit: Vec<((usize, usize), char, char, u32)> = ['D', 'L', 'U', 'R'].iter().map(
         | &dir | (start, 'S', dir, 0)
     ).collect();
+
 
     while to_visit.len() > 0 {
         let ((i, j), cur, dir, count) = to_visit.pop().unwrap();
         // dbg!(&to_visit);
-        match (cur, dir) {
+        visited[i][j] = count + 1;
+        let cell = (cur, dir);
+        match cell {
             ('|', 'U') | ('S', 'U') | ('L', 'L') | ('J', 'R') => {
-                visited[i][j] = 'U';
                 // visited[i][j] = char::from_u32(0x2191).unwrap();
-                if i > 0 && visited[i-1][j] == ' ' {
+                if i > 0 && visited[i-1][j] == 0 {
                     let next = grid[i-1][j];
                     match next {
                         'F' | '7' | '|' => to_visit.push(((i-1, j), next, 'U', count+1)),
@@ -115,9 +121,8 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('|', 'D') | ('S', 'D') | ('F', 'L') | ('7', 'R') => {
-                visited[i][j] = 'D';
                 // visited[i][j] = char::from_u32(0x2193).unwrap();
-                if i < n - 1 && visited[i+1][j] == ' ' {
+                if i < n - 1 && visited[i+1][j] == 0 {
                     let next = grid[i+1][j];
                     match next {
                         'L' | 'J' | '|' => to_visit.push(((i+1, j), next, 'D', count+1)),
@@ -127,9 +132,8 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('-', 'L') | ('S', 'L') | ('J', 'D') | ('7', 'U') => {
-                visited[i][j] = 'L';
                 // visited[i][j] = char::from_u32(0x2190).unwrap();
-                if j > 0 && visited[i][j-1] == ' ' {
+                if j > 0 && visited[i][j-1] == 0 {
                     let next = grid[i][j-1];
                     match next {
                         'L' | 'F' | '-' => to_visit.push(((i, j-1), next, 'L', count+1)),
@@ -139,9 +143,8 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('-', 'R') | ('S', 'R') | ('F', 'U') | ('L', 'D') => {
-                visited[i][j] = 'R';
                 // visited[i][j] = char::from_u32(0x2192).unwrap();
-                if j < m - 1 && visited[i][j+1] == ' ' {
+                if j < m - 1 && visited[i][j+1] == 0 {
                     let next = grid[i][j+1];
                     match next {
                         '7' | 'J' | '-' => to_visit.push(((i, j+1), next, 'R', count+1)),
@@ -153,21 +156,23 @@ fn part_two(content: &String) -> u32 {
             _ => {}
         }
     }
-
-    // visited[start.0][start.1] = 'S';
-
     print_matrix(&visited);
-    // for (i, row) in visited.iter().enumerate() {
-    //     for (j, col) in row.iter().enumerate() {
-            
-    //     }
-    // }
+    let mut total = 0;
+    for (i, row) in visited.iter().enumerate() {
+        let mut inside = false; 
+        for (j, &cell) in row.iter().enumerate() {
+            let c = grid[i][j];
+            if cell > 0 && (c == '|' || c == 'J' || c == 'L') {
+                inside = !inside;
+            } else if cell == 0 && inside {
+                print!("({} {}),", i, j);
+                total += 1;
+            }
+        }
+    }
 
-
-    0
+    total
 }
-
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
