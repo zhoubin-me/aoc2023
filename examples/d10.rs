@@ -170,7 +170,6 @@ fn part_two(content: &String) -> u32 {
             }
         }
     }
-
     total
 }
 fn main() {
