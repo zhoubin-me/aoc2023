@@ -81,7 +81,7 @@ fn part_one(content: &String) -> u32 {
         }
         // print_matrix(&visited);
     }
-    
+    // print_matrix(&visited);
     *visited.iter().flat_map(|row| row.iter()).max().unwrap_or(&0) - 1
 }
 
