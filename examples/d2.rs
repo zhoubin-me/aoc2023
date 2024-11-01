@@ -3,64 +3,56 @@ use std::{fs, env};
 use regex::Regex;
 
 fn part_one(content: &String, rgb: (u32, u32, u32)) -> u32 {
-    let mut result = 0;
+    let game_re = Regex::new(r"(\d+)").unwrap();
+    let cube_re = Regex::new(r"(\d+) (\w+)").unwrap();
+    content.lines().filter_map(
+        |line| {
+            let game_id = game_re.find_iter(line).map(
+                |c| c.as_str().parse::<u32>()
+            ).next().unwrap().unwrap();
 
-    for line in content.lines() {
-        let re: Regex = Regex::new(r"Game (\d+)").unwrap();
-        let game_id = re.captures_iter(line).map(
-            |c| c.extract()
-        ).map(
-            |(_, [num])| num.parse::<u32>().unwrap()
-        ).next().unwrap();
-
-        let re = Regex::new(r"(\d+) (\w+)").unwrap();
-
-        let mut possible = true;
-        for (_, [num, color]) in re.captures_iter(line).map(|c| c.extract()) {
-            let x = num.parse::<u32>().expect("Cannot parse number of cubes");
-            let is_larger = match color {
-                "red" => x > rgb.0,
-                "green" => x > rgb.1,
-                "blue" => x > rgb.2,
-                _ => panic!("Invalid color name")
-            };
-
-            if is_larger {
-                possible = false;
-                break;
+            let is_possible = cube_re.captures_iter(line).map(
+                |c| {
+                    let (_, [num, color]) = c.extract();
+                    let x = num.parse::<u32>().unwrap();
+                    match color {
+                        "red" => x <= rgb.0,
+                        "green" => x <= rgb.1,
+                        "blue" => x <= rgb.2,
+                        _ => unreachable!(),
+                    }
+                }
+            ).all(|e| e);
+            match is_possible {
+                true => Some(game_id),
+                false => None
             }
         }
-
-        if possible {
-            result += game_id;
-        }
-    }
-
-    result
+    ).sum()
 }
 
 
 fn part_two(content: &String) -> u32 {
 
-    let mut result = 0;
-    
-    for line in content.lines() {
-        let mut rgb = (0, 0, 0);
-        let re = Regex::new(r"(\d+) (\w+)").unwrap();
-        for (_, [num, color]) in re.captures_iter(line).map(|c| c.extract()) {
-            let x = num.parse::<u32>().expect("Cannot parse number of cubes");
-            match color {
-                "red" => if rgb.0 < x {rgb.0 = x;},
-                "green" => if rgb.1 < x {rgb.1 = x;},
-                "blue" => if rgb.2 < x {rgb.2 = x},
-                _ => panic!("Invalid color name")
-            };
+    let re = Regex::new(r"(\d+) (\w+)").unwrap();
+    content.lines().map(
+        |line| {
+            let mut rgb: (u32, u32, u32) = (0, 0, 0);
+            re.captures_iter(line).for_each(
+                |c| {
+                    let (_, [num, color]) = c.extract();
+                    let x = num.parse::<u32>().unwrap();
+                    match (color, x) {
+                        ("red", x) if x > rgb.0 => rgb.0 = x,
+                        ("blue", x) if x > rgb.1 => rgb.1 = x,
+                        ("green", x) if x > rgb.2 => rgb.2 = x,
+                        _ => ()
+                    };
+                }
+            );
+            rgb.0 * rgb.1 * rgb.2
         }
-        // dbg!(rgb.0 * rgb.1 * rgb.2);
-        result += rgb.0 * rgb.1 * rgb.2;
-    }
-
-    result
+    ).sum()
 }
 
 

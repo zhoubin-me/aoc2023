@@ -3,58 +3,48 @@ use std::env;
 use std::fs;
 
 fn part_one(content: &String) -> u32 {
-    let mut result = 0;
-    for line in content.lines() {
-        for c in line.chars() {
-            if c.is_ascii_digit() {
-                match c.to_digit(10) {
-                    Some(x) => {result += 10 * x; break;},
-                    None => {continue;}
-                }
-            }
-        }
+    content.lines().map(
+        |line| {
+            let first = line.chars().filter_map(
+                |c| c.to_digit(10)
+            ).nth(0).unwrap();
 
-        for c in line.chars().rev() {
-            if c.is_ascii_digit() {
-                match c.to_digit(10) {
-                    Some(x) => {result += x; break},
-                    None => {continue;}
-                }
-            }
-        }
-    }
+            let second = line.chars().rev().filter_map(
+                |c| c.to_digit(10)
+            ).nth(0).unwrap();
 
-    result
+            first * 10 + second
+        }
+    ).sum()
 }
 
 fn part_two(content: &String) -> u32 {
     let digits = vec![
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
         "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-    let mut result = 0;
-
-    for line in content.lines() {
-        'first: for start in 0..line.len() {
-            for (i, &digit) in digits.iter().enumerate() {
-                if line[start..].starts_with(digit) {
-                    result += 10 * (i % 9 + 1);
-                    break 'first;
+    content.lines().map(
+        |line| {
+            let first = digits.iter().enumerate().filter_map(
+                |(i, &x)| {
+                    match line.find(x) {
+                        Some(idx) => Some((idx, i)),
+                        None => None,
+                    }
                 }
-            }
-        }
+            ).min_by_key(|&(idx, _)| idx).unwrap();
 
-        'last: for end in (0..line.len()).rev() {
-            for (i, &digit) in digits.iter().enumerate() {
-                if line[..=end].ends_with(digit) {
-                    result += i % 9 + 1;
-                    break 'last;
+            let second = digits.iter().enumerate().filter_map(
+                |(i, &x)| {
+                    match line.rfind(x) {
+                        Some(idx) => Some((idx + x.len(), i)),
+                        None => None
+                    }
                 }
-            }
+            ).max_by_key(|&(idx, _)| idx).unwrap();
+
+            10 * (first.1 as u32 % 9 + 1) + second.1 as u32 % 9 + 1
         }
-    }
-
-    result as u32
-
+    ).sum()
 }
 
 

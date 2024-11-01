@@ -1,153 +1,117 @@
-use std::{env, fs, vec};
-
+use std::{env, fs};
 use regex::Regex;
 
-fn map_two(cur: &mut Vec<(u64, u64)>, map: &mut Vec<(u64, u64, u64, u64)>) -> Vec<(u64, u64)> {
-    map.sort_by_key(|x| x.2);
-    cur.sort_by_key(|x| x.0);
-
-    let mut result = vec![];
+fn map_two(seeds: &mut Vec<(u64, u64)>, map: &mut Vec<(u64, u64, u64)>) -> Vec<(u64, u64)> {
+    map.sort_by_key(|&(_, x, _)| x);
+    seeds.sort_by_key(|&(x, _)| x);
+    let mut new_seeds: Vec<(u64, u64)> = vec![];
     let (mut i, mut j) = (0, 0);
-    loop {
-        let (start, end) = cur[i];
-        let (des_start, des_end, src_start, src_end) = map[j];
-        if end < src_start {
-            // cur totally on left of src
-            // println!("Left: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            result.push((start, end));
-            i += 1;
-        } else if  start < src_start && end <= src_end {
-            // cur overlap with left of src
-            // println!("Left Overlap: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            result.push((start, src_start-1));
-            result.push((des_start, des_start + end - src_start));
-            i += 1;
-        } else if start >= src_start && end <= src_end {
-            // cur inside src
-            // println!("Inside: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            result.push((des_start + start - src_start, des_start + end - src_start));
-            i += 1;
-        } else if start < src_start && end > src_end {
-            // src inside cur
-            // println!("Outside: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            result.push((start, start-1));
-            result.push((des_start, des_end));
-            cur[i].0 = src_end + 1;
-            j += 1;
-        } else if start >= src_start && start <= src_end && end > src_end {
-            // cur overlap with right of src
-            // println!("Right Overlap: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            result.push((des_start + start - src_start, des_end));
-            cur[i].0 = src_end + 1;
-            j += 1;
-        } else if start > src_end {
-            // println!("Right: {start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            j += 1;
-        } else {
-            println!("{start}, {end}, {src_start}, {src_end}, {des_start}, {des_end}");
-            panic!("Impossible")
-        }
 
-        if i == cur.len() && j == map.len() {
-            break;
-        } else if i < cur.len() && j == map.len() {
-            while i < cur.len() {
-                result.push((cur[i].0, cur[i].1));
-                i += 1;
+    while i < seeds.len() && j < map.len() {
+        let (start, m) = seeds.iter_mut().nth(i).unwrap();
+        let (des, src, n) = map.iter().nth(j).unwrap();
+
+        if *start + *m <= *src {
+            new_seeds.push((*start, *m));
+            i += 1;
+        } else if *start + *m <= *src + *n {
+            if *start >= *src {
+                new_seeds.push((*des + *start - *src, *m));
+            } else {
+                new_seeds.push((*start, *src - *start));
+                new_seeds.push((*des, *m - (*src - *start)));
             }
-            break;
-        } else if i == cur.len() && j < map.len() {
-            break;
+            i += 1;
+        } else {
+            if *start >= *src + *n {
+                j += 1;
+            } else if *start >= *src {
+                new_seeds.push((*des + *start - *src, *src + *n - *start));
+                *m -= *src + *n - *start;
+                *start = *src + *n;
+                j += 1;
+            } else {
+                new_seeds.push((*start, *src - *start));
+                new_seeds.push((*des, *n));
+                *m -= *src + *n - *start;
+                *start = *src + *n;
+                j += 1;
+            }
         }
     }
 
-    result
-    
+    new_seeds.extend(seeds.iter().skip(i));
+    new_seeds
 }
 
 
 fn part_two(content: &String) -> u64 {
-    let re = Regex::new(r"(\d+)").unwrap();
-    let mut cur: Vec<(u64, u64)> = vec![];
-    let mut map: Vec<(u64, u64, u64, u64)> = vec![];
-    for line in content.lines() {
-        if line.starts_with("seeds:") {
-            let x = re.find_iter(line).map(
-                |m| m.as_str().parse::<u64>().unwrap()
-            ).collect::<Vec<u64>>();
+    let re = Regex::new(r"\d+").unwrap();
+    let seeds = re.find_iter(content.lines().nth(0).unwrap()).map(
+        |m| m.as_str().parse::<u64>().unwrap()
+    ).collect::<Vec<u64>>();
 
-            for (i, e) in x.iter().enumerate() {
-                if i % 2 == 1 {
-                    cur.push((x[i-1], x[i-1] + e - 1))
-                }
-            }
-
-
-        } else if line.contains("-to-") {
-            map.clear();
-        } else if line.trim().len() == 0 {
-            if map.len() == 0 {
-                continue;
-            }
-            cur = map_two(&mut cur, &mut map);
-        } else {
-            let x = re.find_iter(line).map(
-                |m| m.as_str().parse::<u64>().unwrap()
-            ).collect::<Vec<u64>>();
-            // (des_start, des_end, src_start, src_end)
-            map.push((x[0], x[0] + x[2] - 1, x[1], x[1] + x[2] - 1))
+    let mut seeds = seeds.iter().enumerate().filter_map(
+        |(i, _)| match i % 2 == 1 {
+            true => Some((seeds[i-1], seeds[i])),
+            false => None
         }
-    }
+    ).collect::<Vec<(u64, u64)>>();
 
-    if map.len() > 0 {
-        cur = map_two(&mut cur, &mut map);
-    }
-
-    cur.iter().min_by_key(|x| x.0).unwrap().0
+    let mut map = vec![];
+    content.lines().skip(2).for_each(|line|{
+        match line {
+            line if line.len() == 0 => {
+                seeds = map_two(&mut seeds, &mut map);
+            },
+            line if line.contains("map") => {
+                map.clear();
+            }
+            _ => {
+                let nums: Vec<u64> = re.find_iter(line).map(
+                    |m| m.as_str().parse::<u64>().unwrap()
+                ).collect();
+                map.push((nums[0], nums[1], nums[2]));
+            }
+            
+        }
+    });
+    seeds.iter().map(|x| x.0).min().unwrap()
 }
 
-fn map_one(cur: &mut Vec<u64>, map: &mut Vec<(u64, u64, u64)>) {
-    map.sort_by_key(|x| x.1);
-
-    for x in cur.iter_mut() {
-        for (des, src, n) in map.iter() {
-            if src <= x && *x < *src + *n {
-                *x = *des + *x - *src;
-                break;
-            }
-        }
-    }
-}
 
 fn part_one(content: &String) -> u64 {
-    let re = Regex::new(r"(\d+)").unwrap();
-    let mut cur: Vec<u64> = vec![];
-    let mut map: Vec<(u64, u64, u64)> = vec![];
-    for line in content.lines() {
-        if line.starts_with("seeds:") {
-            cur = re.find_iter(line).map(
-                |m| m.as_str().parse::<u64>().unwrap()
-            ).collect();
-        } else if line.contains("-to-") {
-            map.clear();
-        } else if line.trim().len() == 0 {
-            if map.len() == 0 {
-                continue;
+    let re = Regex::new(r"\d+").unwrap();
+    let mut seeds: Vec<u64> = re.find_iter(content.lines().nth(0).unwrap()).map(
+        |m| m.as_str().parse::<u64>().unwrap()
+    ).collect();
+    let mut map = vec![];
+
+    content.lines().skip(2).for_each(|line|{
+        match line {
+            line if line.len() == 0 => {
+                seeds.iter_mut().for_each(|x| {
+                    for &(des, src, n) in map.iter() {
+                        if src <= *x && *x < src + n {
+                            *x = des + (*x - src);
+                            break;
+                        }
+                    }
+                });
+            },
+            line if line.contains("map") => {
+                map.clear();
             }
-            map_one(&mut cur, &mut map);
-        } else {
-            let x = re.find_iter(line).map(
-                |m| m.as_str().parse::<u64>().unwrap()
-            ).collect::<Vec<u64>>();
-            map.push((x[0], x[1], x[2]))
+            _ => {
+                let nums: Vec<u64> = re.find_iter(line).map(
+                    |m| m.as_str().parse::<u64>().unwrap()
+                ).collect();
+                map.push((nums[0], nums[1], nums[2]));
+            }
         }
-    }
+    });
 
-    if map.len() > 0 {
-        map_one(&mut cur, &mut map);
-    }
-
-    *cur.iter().min().unwrap()
+    *seeds.iter().min().unwrap()
 }
 
 
@@ -160,6 +124,6 @@ fn main() {
     }
     let filename = &args[1];
     let content: String = fs::read_to_string(filename).expect("Cannot open file!");
-    // dbg!(part_one(&content));
+    dbg!(part_one(&content));
     dbg!(part_two(&content));
 }

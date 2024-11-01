@@ -5,66 +5,38 @@ use std::collections::HashSet;
 use regex::Regex;
 
 fn part_one(content: &String) -> u32 {
-    let mut result = 0;
-    let digits = Regex::new(r"(\d+)").unwrap();
-    for line in content.lines() {
-        let mut cache = HashSet::new();
-        let mut count = 0;
-        let pos = line.find("|").unwrap();
-        for (i, m) in digits.find_iter(line).enumerate() {
-            if i == 0 {
-                continue;
-            }
-            let x = m.as_str().parse::<u32>().unwrap();
-            if m.end() < pos {
-                cache.insert(x);
-            } else {
-                if cache.contains(&x) {
-                    count += 1;
-                }
-            }
+    let re = Regex::new(r"(\d+)").unwrap();
+    content.lines().filter_map(|line|{
+        let nums: Vec<u32> = re.find_iter(line).map(|m| 
+            m.as_str().parse::<u32>().unwrap()).collect();
+        let wins: HashSet<_> = nums.iter().skip(1).take(10).collect();
+        let count: usize = nums.iter().skip(11).filter(|&x| wins.contains(x)).count();
+        match count {
+            0 => None,
+            _ => Some(2u32.pow(count as u32 - 1))
         }
-
-        if count > 0 {
-            result += 2u32.pow(count - 1);
-        }
-    }
-
-    result
+    }).sum()
 }
 
 fn part_two(content: &String) -> u32 {
-    let digits = Regex::new(r"(\d+)").unwrap();
-    let n = content.lines().count();
-    let mut counts = vec![];
-    counts.resize(n, 1u32);
-    for (i, line) in content.lines().enumerate() {
-        let mut cache = HashSet::new();
-        let mut count = 0;
-        let pos = line.find("|").unwrap();
-        for (i, m) in digits.find_iter(line).enumerate() {
-            if i == 0 {
-                continue;
-            }
-            let x = m.as_str().parse::<u32>().unwrap();
-            if m.end() < pos {
-                cache.insert(x);
-            } else {
-                if cache.contains(&x) {
-                    count += 1;
-                }
-            }
-        }
+    let re = Regex::new(r"(\d+)").unwrap();
+    let matches: Vec<usize> = content.lines().map(|line|{
+        let nums: Vec<u32> = re.find_iter(line).map(|m| 
+            m.as_str().parse::<u32>().unwrap()).collect();
+        let wins: HashSet<_> = nums.iter().skip(1).take(10).collect();
+        nums.iter().skip(11).filter(|&x| wins.contains(x)).count()
+    }).collect();
 
-        for j in i+1..(i+1+count as usize) {
-            if j < n {
-                counts[j] += counts[i];
-            }
+    let mut count = vec![1; matches.len()];
+
+    for (i, x) in matches.iter().enumerate() {
+        let y = count[i];
+        for j in count.iter_mut().skip(i+1).take(*x) {
+            *j += y;
         }
     }
 
-    counts.iter().sum()
-
+    count.iter().sum()
 }
 
 

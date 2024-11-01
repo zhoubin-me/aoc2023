@@ -1,11 +1,6 @@
-
 use std::env;
 use std::fmt::Display;
 use std::fs;
-
-use num::iter;
-
-
 
 fn print_matrix<T: Display>(mat: &Vec<Vec<T>>) {
     let mut s = "".to_string();
@@ -79,9 +74,8 @@ fn part_one(content: &String) -> u32 {
             }
             _ => {}
         }
-        // print_matrix(&visited);
     }
-    
+    print_matrix(&visited);
     *visited.iter().flat_map(|row| row.iter()).max().unwrap_or(&0) - 1
 }
 
@@ -165,7 +159,7 @@ fn part_two(content: &String) -> u32 {
             if cell > 0 && (c == '|' || c == 'J' || c == 'L') {
                 inside = !inside;
             } else if cell == 0 && inside {
-                // print!("({} {}),", i, j);
+                print!("({} {}),", i, j);
                 total += 1;
             }
         }
