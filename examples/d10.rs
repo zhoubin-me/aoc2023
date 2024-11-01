@@ -79,7 +79,6 @@ fn part_one(content: &String) -> u32 {
             }
             _ => {}
         }
-        // print_matrix(&visited);
     }
     // print_matrix(&visited);
     *visited.iter().flat_map(|row| row.iter()).max().unwrap_or(&0) - 1
@@ -110,7 +109,6 @@ fn part_two(content: &String) -> u32 {
         let cell = (cur, dir);
         match cell {
             ('|', 'U') | ('S', 'U') | ('L', 'L') | ('J', 'R') => {
-                // visited[i][j] = char::from_u32(0x2191).unwrap();
                 if i > 0 && visited[i-1][j] == 0 {
                     let next = grid[i-1][j];
                     match next {
@@ -121,7 +119,6 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('|', 'D') | ('S', 'D') | ('F', 'L') | ('7', 'R') => {
-                // visited[i][j] = char::from_u32(0x2193).unwrap();
                 if i < n - 1 && visited[i+1][j] == 0 {
                     let next = grid[i+1][j];
                     match next {
@@ -132,7 +129,6 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('-', 'L') | ('S', 'L') | ('J', 'D') | ('7', 'U') => {
-                // visited[i][j] = char::from_u32(0x2190).unwrap();
                 if j > 0 && visited[i][j-1] == 0 {
                     let next = grid[i][j-1];
                     match next {
@@ -143,7 +139,6 @@ fn part_two(content: &String) -> u32 {
                 }
             }
             ('-', 'R') | ('S', 'R') | ('F', 'U') | ('L', 'D') => {
-                // visited[i][j] = char::from_u32(0x2192).unwrap();
                 if j < m - 1 && visited[i][j+1] == 0 {
                     let next = grid[i][j+1];
                     match next {
